@@ -1,0 +1,26 @@
+school_name,school_type,num_students,socioeconomic_index,district
+Bräckeskolan,kommunal,340,52,Västra Hisingen
+Lundbyskolan,kommunal,290,38,Lundby
+Kålltorpsskolan,kommunal,415,22,Örgryte-Härlanda
+Sjumilaskolan,kommunal,380,68,Biskopsgården
+Guldhedsskolan,kommunal,260,25,Majorna-Linné
+Flatåsskolan,kommunal,310,45,Västra Göteborg
+Bergsjöskolan,kommunal,275,72,Angered
+Gamlestadsskolan,kommunal,350,42,Östra Göteborg
+Torslandaskolan,kommunal,420,18,Västra Hisingen
+Frölundaskolan,kommunal,365,55,Askim-Frölunda-Högsbo
+Hjällboskolan,kommunal,295,70,Angered
+Hovåsskolan,kommunal,230,15,Askim-Frölunda-Högsbo
+Lövgärdesskolan,kommunal,250,65,Angered
+Styrsöskolan,kommunal,155,20,Västra Göteborg
+Rambergsskolan,kommunal,320,35,Lundby
+Askimsskolan,kommunal,385,19,Askim-Frölunda-Högsbo
+Norra Hisingen skola,kommunal,300,48,Norra Hisingen
+Kannebäcksskolan,kommunal,270,40,Majorna-Linné
+Vittra Kronhusparken,fristående,210,28,Centrum
+Internationella Engelska Skolan Göteborg,fristående,450,30,Östra Göteborg
+Kunskapsskolan Krokslätt,fristående,380,32,Örgryte-Härlanda
+Montessoriskolan Centrum,fristående,165,24,Centrum
+Fridaskolan Mölndalsvägen,fristående,240,35,Majorna-Linné
+Thoren Framtid Angered,fristående,195,58,Angered
+Raoul Wallenbergskolan,fristående,285,33,Lundby

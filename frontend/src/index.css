@@ -1,0 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Source+Sans+3:ital,wght@0,300..900;1,300..900&display=swap');
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: #F5F0E8;
+  --color-foreground: #1B2A4A;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #1B2A4A;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #1B2A4A;
+  --color-primary: #1B2A4A;
+  --color-primary-foreground: #F5F0E8;
+  --color-secondary: #E8E2D6;
+  --color-secondary-foreground: #1B2A4A;
+  --color-muted: #E8E2D6;
+  --color-muted-foreground: #6B7A8D;
+  --color-accent: #2A9D8F;
+  --color-accent-foreground: #FFFFFF;
+  --color-destructive: #C1402D;
+  --color-destructive-foreground: #FFFFFF;
+  --color-border: #D4CCBD;
+  --color-input: #D4CCBD;
+  --color-ring: #2A9D8F;
+  --radius: 0.5rem;
+  --font-heading: 'DM Serif Display', serif;
+  --font-body: 'Source Sans 3', sans-serif;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 400;
+}
