@@ -39,10 +39,13 @@ interface DataState {
 export const useDataStore = create<DataState>((set, get) => ({
   schools: [],
   parameters: {
-    base_amount_per_pupil: 85000,
-    municipal_supplement: 0,
-    socioeconomic_weight: 0.3,
-    max_socioeconomic_supplement: 15000,
+    g_fsk: 49_500,
+    g_ak13: 62_000,
+    g_ak46: 66_100,
+    g_ak79: 70_100,
+    g_fritids_69: 30_800,
+    g_fritids_1012: 9_900,
+    structural_share: 0.19,
     index_scale: 100,
   },
   results: null,

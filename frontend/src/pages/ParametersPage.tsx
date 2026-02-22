@@ -16,8 +16,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { Upload, Loader2, Calculator, FileSpreadsheet } from "lucide-react";
+import { Upload, Loader2, Calculator, FileSpreadsheet, Info } from "lucide-react";
 import type { SchoolInput } from "@/types";
+
+function fmt(n: number): string {
+  return new Intl.NumberFormat("sv-SE").format(Math.round(n));
+}
 
 export function ParametersPage() {
   const {
@@ -92,6 +96,15 @@ export function ParametersPage() {
     }
   };
 
+  const grundbeloppRows: { label: string; key: keyof typeof parameters }[] = [
+    { label: "FSK (Förskoleklass)", key: "g_fsk" },
+    { label: "ÅK1-3", key: "g_ak13" },
+    { label: "ÅK4-6", key: "g_ak46" },
+    { label: "ÅK7-9", key: "g_ak79" },
+    { label: "Fritids 6–9 år", key: "g_fritids_69" },
+    { label: "Fritids 10–12 år", key: "g_fritids_1012" },
+  ];
+
   return (
     <div className="space-y-8">
       <div>
@@ -158,9 +171,15 @@ export function ParametersPage() {
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Kolumner: <code className="rounded bg-muted px-1">school_name</code>,{" "}
+            Kolumner:{" "}
+            <code className="rounded bg-muted px-1">school_name</code>,{" "}
             <code className="rounded bg-muted px-1">school_type</code> (kommunal/fristående),{" "}
-            <code className="rounded bg-muted px-1">num_students</code>,{" "}
+            <code className="rounded bg-muted px-1">num_fsk</code>,{" "}
+            <code className="rounded bg-muted px-1">num_ak1_3</code>,{" "}
+            <code className="rounded bg-muted px-1">num_ak4_6</code>,{" "}
+            <code className="rounded bg-muted px-1">num_ak7_9</code>,{" "}
+            <code className="rounded bg-muted px-1">num_fritids_6_9</code>,{" "}
+            <code className="rounded bg-muted px-1">num_fritids_10_12</code>,{" "}
             <code className="rounded bg-muted px-1">socioeconomic_index</code>,{" "}
             <code className="rounded bg-muted px-1">district</code> (valfri)
           </p>
@@ -177,7 +196,12 @@ export function ParametersPage() {
                     <TableRow className="bg-muted/40">
                       <TableHead>Skolnamn</TableHead>
                       <TableHead>Typ</TableHead>
-                      <TableHead className="text-right">Elever</TableHead>
+                      <TableHead className="text-right">FSK</TableHead>
+                      <TableHead className="text-right">ÅK1-3</TableHead>
+                      <TableHead className="text-right">ÅK4-6</TableHead>
+                      <TableHead className="text-right">ÅK7-9</TableHead>
+                      <TableHead className="text-right">F6-9</TableHead>
+                      <TableHead className="text-right">F10-12</TableHead>
                       <TableHead className="text-right">Index</TableHead>
                       <TableHead>Stadsdel</TableHead>
                     </TableRow>
@@ -189,8 +213,23 @@ export function ParametersPage() {
                           {s.school_name}
                         </TableCell>
                         <TableCell>{s.school_type}</TableCell>
-                        <TableCell className="text-right">
-                          {s.num_students}
+                        <TableCell className={`text-right ${s.num_fsk === 0 ? "text-muted-foreground" : ""}`}>
+                          {s.num_fsk}
+                        </TableCell>
+                        <TableCell className={`text-right ${s.num_ak1_3 === 0 ? "text-muted-foreground" : ""}`}>
+                          {s.num_ak1_3}
+                        </TableCell>
+                        <TableCell className={`text-right ${s.num_ak4_6 === 0 ? "text-muted-foreground" : ""}`}>
+                          {s.num_ak4_6}
+                        </TableCell>
+                        <TableCell className={`text-right ${s.num_ak7_9 === 0 ? "text-muted-foreground" : ""}`}>
+                          {s.num_ak7_9}
+                        </TableCell>
+                        <TableCell className={`text-right ${s.num_fritids_6_9 === 0 ? "text-muted-foreground" : ""}`}>
+                          {s.num_fritids_6_9}
+                        </TableCell>
+                        <TableCell className={`text-right ${s.num_fritids_10_12 === 0 ? "text-muted-foreground" : ""}`}>
+                          {s.num_fritids_10_12}
                         </TableCell>
                         <TableCell className="text-right">
                           {s.socioeconomic_index}
@@ -211,77 +250,84 @@ export function ParametersPage() {
         </CardContent>
       </Card>
 
-      {/* Base Amount */}
+      {/* Section B — Grundbelopp per åldersgrupp */}
       <Card className="border-border/60">
         <CardHeader>
           <CardTitle
             className="text-xl"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            Grundbelopp
+            Grundbelopp per åldersgrupp
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="base_amount">Grundbelopp per elev (SEK)</Label>
-              <Input
-                id="base_amount"
-                type="number"
-                value={parameters.base_amount_per_pupil}
-                onChange={(e) => updateParam("base_amount_per_pupil", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="municipal_supplement">
-                Kommunalt tillägg (SEK)
-              </Label>
-              <Input
-                id="municipal_supplement"
-                type="number"
-                value={parameters.municipal_supplement}
-                onChange={(e) => updateParam("municipal_supplement", e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Extra belopp per elev för kommunala skolor.
-              </p>
-            </div>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {grundbeloppRows.map(({ label, key }) => (
+              <div key={key} className="space-y-2">
+                <Label htmlFor={key}>{label}</Label>
+                <div className="relative">
+                  <Input
+                    id={key}
+                    type="number"
+                    value={parameters[key]}
+                    onChange={(e) => updateParam(key, e.target.value)}
+                    className="pr-8"
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                    kr
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {fmt(parameters[key] as number)} kr/elev vid index 100
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <Separator />
+
+          <div className="flex items-start gap-2 rounded-lg bg-muted/40 p-4 text-xs text-muted-foreground">
+            <Info className="mt-0.5 size-4 shrink-0 text-accent" />
+            <p>
+              Grundbelopp gäller vid genomsnittligt socioekonomiskt index (100).
+              Beloppen fastställs av grundskolenämnden varje år.
+            </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Socioeconomic Weighting */}
+      {/* Section C — Strukturersättning */}
       <Card className="border-border/60">
         <CardHeader>
           <CardTitle
             className="text-xl"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            Socioekonomisk viktning
+            Strukturersättning
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid gap-6 sm:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="weight">Viktningsfaktor</Label>
-              <Input
-                id="weight"
-                type="number"
-                step="0.1"
-                value={parameters.socioeconomic_weight}
-                onChange={(e) => updateParam("socioeconomic_weight", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="max_supplement">Max tillägg (SEK/elev)</Label>
-              <Input
-                id="max_supplement"
-                type="number"
-                value={parameters.max_socioeconomic_supplement}
-                onChange={(e) =>
-                  updateParam("max_socioeconomic_supplement", e.target.value)
-                }
-              />
+              <Label htmlFor="structural_share">Strukturandel (%)</Label>
+              <div className="relative">
+                <Input
+                  id="structural_share"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="1"
+                  value={parameters.structural_share}
+                  onChange={(e) => updateParam("structural_share", e.target.value)}
+                  className="pr-8"
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                  {(parameters.structural_share * 100).toFixed(0)}%
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Andel av grundbeloppet som fördelas utifrån socioekonomiskt index (0.19 = 19%).
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="index_scale">Indexskala</Label>
@@ -292,7 +338,7 @@ export function ParametersPage() {
                 onChange={(e) => updateParam("index_scale", e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                t.ex. 100 om index är 0–100
+                Referensvärde för genomsnittligt index (standard: 100).
               </p>
             </div>
           </div>
@@ -302,13 +348,9 @@ export function ParametersPage() {
           <div className="rounded-lg bg-muted/40 p-4">
             <p className="mb-2 text-sm font-medium text-foreground">Formel</p>
             <code className="block text-xs leading-relaxed text-muted-foreground">
-              socioekonomiskt_tillägg = min((index / skala) × vikt × grundbelopp,
-              max_tillägg)
+              per_elev_y = grundbelopp_y × ((1 − strukturandel) + strukturandel × index / indexskala)
               <br />
-              total_per_elev = grundbelopp + socioekonomiskt_tillägg +
-              (kommunalt_tillägg om kommunal)
-              <br />
-              total = total_per_elev × antal_elever
+              total_skola = Σ (antal_elever_y × per_elev_y) för varje åldersgrupp y
             </code>
           </div>
         </CardContent>

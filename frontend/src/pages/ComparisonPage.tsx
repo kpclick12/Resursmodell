@@ -20,7 +20,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import type { PlanSummary, PlanDetail } from "@/types";
+import type { PlanSummary, PlanDetail, SchoolResult } from "@/types";
 import { toast } from "sonner";
 
 const COLORS = ["#1B2A4A", "#2A9D8F", "#E76F51", "#264653"];
@@ -31,6 +31,12 @@ function fmt(n: number): string {
 
 function fmtSek(n: number): string {
   return `${fmt(n)} kr`;
+}
+
+/** Average school allocation per school pupil (fsk+ak1-3+ak4-6+ak7-9). */
+function avgPerPupil(school: SchoolResult): number {
+  if (school.total_school_students === 0) return 0;
+  return school.total_school_allocation / school.total_school_students;
 }
 
 export function ComparisonPage() {
@@ -82,6 +88,7 @@ export function ComparisonPage() {
     return [
       { label: "Total budget", values: activePlans.map((p) => fmtSek(p.summary.total_budget)) },
       { label: "Antal skolor", values: activePlans.map((p) => String(p.summary.total_schools)) },
+      { label: "Skolelever totalt", values: activePlans.map((p) => fmt(p.summary.total_pupils)) },
       { label: "Genomsnitt per elev", values: activePlans.map((p) => fmtSek(p.summary.avg_per_pupil_overall)) },
       { label: "Genomsnitt kommunal", values: activePlans.map((p) => fmtSek(p.summary.avg_per_pupil_kommunal)) },
       { label: "Genomsnitt fristående", values: activePlans.map((p) => fmtSek(p.summary.avg_per_pupil_fristaende)) },
@@ -91,7 +98,10 @@ export function ComparisonPage() {
           fmtSek(p.summary.avg_per_pupil_kommunal - p.summary.avg_per_pupil_fristaende)
         ),
       },
-      { label: "Socioekonomisk andel", values: activePlans.map((p) => `${p.summary.socioeconomic_share.toFixed(1)}%`) },
+      {
+        label: "Strukturell andel",
+        values: activePlans.map((p) => `${p.summary.socioeconomic_share.toFixed(1)}%`),
+      },
     ];
   }, [activePlans]);
 
@@ -104,7 +114,7 @@ export function ComparisonPage() {
     }));
   }, [activePlans]);
 
-  // Per-school delta (2 plans only)
+  // Per-school delta (2 plans only) — compare total allocation
   const deltaRows = useMemo(() => {
     if (activePlans.length !== 2) return [];
     const [a, b] = activePlans;
@@ -113,13 +123,15 @@ export function ComparisonPage() {
       .map((sa) => {
         const sb = bMap.get(sa.school_name);
         if (!sb) return null;
+        const a_per_pupil = avgPerPupil(sa);
+        const b_per_pupil = avgPerPupil(sb);
         return {
           school_name: sa.school_name,
           a_total: sa.total_allocation,
-          a_per_pupil: sa.total_per_pupil,
+          a_per_pupil,
           b_total: sb.total_allocation,
-          b_per_pupil: sb.total_per_pupil,
-          diff_per_pupil: sb.total_per_pupil - sa.total_per_pupil,
+          b_per_pupil,
+          diff_per_pupil: b_per_pupil - a_per_pupil,
         };
       })
       .filter(Boolean)
@@ -270,6 +282,7 @@ export function ComparisonPage() {
                 </h3>
                 <p className="mb-3 text-sm text-muted-foreground">
                   Jämförelse mellan {activePlans[0].name} och {activePlans[1].name}, sorterad efter störst skillnad.
+                  Belopp per elev baserat på skolelever (exkl. fritids).
                 </p>
                 <div className="overflow-x-auto rounded-lg border border-border/60">
                   <Table>

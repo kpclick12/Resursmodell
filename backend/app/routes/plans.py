@@ -41,7 +41,6 @@ async def save_plan(
     await db.commit()
     await db.refresh(session)
 
-    # Count results for total_schools
     count_result = await db.execute(
         select(AllocationResult).where(
             AllocationResult.calc_session_id == session.id
@@ -83,6 +82,66 @@ async def list_plans(
     ]
 
 
+def _session_to_parameters(session: CalculationSession) -> CalculationParameters:
+    """Reconstruct CalculationParameters from a stored session."""
+    # New-format session: use the new grundbelopp columns
+    if session.g_fsk is not None:
+        return CalculationParameters(
+            g_fsk=session.g_fsk,
+            g_ak13=session.g_ak13 or 62_000,
+            g_ak46=session.g_ak46 or 66_100,
+            g_ak79=session.g_ak79 or 70_100,
+            g_fritids_69=session.g_fritids_69 or 30_800,
+            g_fritids_1012=session.g_fritids_1012 or 9_900,
+            structural_share=session.structural_share or 0.19,
+            index_scale=session.new_index_scale or 100.0,
+        )
+    # Legacy session: return defaults
+    return CalculationParameters()
+
+
+def _result_to_school_result(r: AllocationResult) -> SchoolResult:
+    """Reconstruct SchoolResult from a stored AllocationResult row."""
+    num_fsk        = r.num_fsk or 0
+    num_ak1_3      = r.num_ak1_3 or 0
+    num_ak4_6      = r.num_ak4_6 or 0
+    num_ak7_9      = r.num_ak7_9 or 0
+    num_fritids_6_9   = r.num_fritids_6_9 or 0
+    num_fritids_10_12 = r.num_fritids_10_12 or 0
+
+    school_students = num_fsk + num_ak1_3 + num_ak4_6 + num_ak7_9
+    fritids_students = num_fritids_6_9 + num_fritids_10_12
+
+    school_alloc  = r.total_school_allocation or 0.0
+    fritids_alloc = r.total_fritids_allocation or 0.0
+    # For legacy rows, total_allocation is the source of truth
+    total_alloc = r.total_allocation
+
+    return SchoolResult(
+        school_name=r.school_name,
+        school_type=r.school_type,
+        num_fsk=num_fsk,
+        num_ak1_3=num_ak1_3,
+        num_ak4_6=num_ak4_6,
+        num_ak7_9=num_ak7_9,
+        num_fritids_6_9=num_fritids_6_9,
+        num_fritids_10_12=num_fritids_10_12,
+        total_school_students=school_students,
+        total_fritids_students=fritids_students,
+        socioeconomic_index=r.socioeconomic_index,
+        district=r.district,
+        per_pupil_fsk=r.per_pupil_fsk or 0.0,
+        per_pupil_ak1_3=r.per_pupil_ak1_3 or 0.0,
+        per_pupil_ak4_6=r.per_pupil_ak4_6 or 0.0,
+        per_pupil_ak7_9=r.per_pupil_ak7_9 or 0.0,
+        per_pupil_fritids_6_9=r.per_pupil_fritids_6_9 or 0.0,
+        per_pupil_fritids_10_12=r.per_pupil_fritids_10_12 or 0.0,
+        total_school_allocation=school_alloc,
+        total_fritids_allocation=fritids_alloc,
+        total_allocation=total_alloc,
+    )
+
+
 @router.get("/{session_id}", response_model=PlanDetail)
 async def get_plan(
     session_id: str,
@@ -98,28 +157,9 @@ async def get_plan(
     if not session:
         raise HTTPException(status_code=404, detail="Plan not found")
 
-    school_results = [
-        SchoolResult(
-            school_name=r.school_name,
-            school_type=r.school_type,
-            num_students=r.num_students,
-            socioeconomic_index=r.socioeconomic_index,
-            district=r.district,
-            socioeconomic_addition_per_pupil=r.socioeconomic_addition_per_pupil,
-            total_per_pupil=r.total_per_pupil,
-            total_allocation=r.total_allocation,
-        )
-        for r in session.results
-    ]
-
-    summary = _build_summary(school_results)
-    parameters = CalculationParameters(
-        base_amount_per_pupil=session.base_amount_per_pupil,
-        municipal_supplement=session.municipal_supplement,
-        socioeconomic_weight=session.socioeconomic_weight,
-        max_socioeconomic_supplement=session.max_socioeconomic_supplement,
-        index_scale=session.index_scale,
-    )
+    parameters = _session_to_parameters(session)
+    school_results = [_result_to_school_result(r) for r in session.results]
+    summary = _build_summary(school_results, parameters)
 
     return PlanDetail(
         session_id=session.session_id,

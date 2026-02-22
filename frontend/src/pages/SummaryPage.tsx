@@ -29,6 +29,10 @@ function fmtSek(n: number): string {
   return `${fmt(n)} kr`;
 }
 
+function fmtMkr(n: number): string {
+  return `${new Intl.NumberFormat("sv-SE", { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n / 1_000_000)} Mkr`;
+}
+
 export function SummaryPage() {
   const summary = useDataStore((s) => s.activeSummary());
   const results = useDataStore((s) => s.activeResults());
@@ -56,35 +60,46 @@ export function SummaryPage() {
     .filter((r) => r.school_type === "fristående")
     .reduce((sum, r) => sum + r.total_allocation, 0);
 
+  // Year-group pupil breakdown across all schools
+  const totalFsk    = results.reduce((s, r) => s + r.num_fsk, 0);
+  const totalAk13   = results.reduce((s, r) => s + r.num_ak1_3, 0);
+  const totalAk46   = results.reduce((s, r) => s + r.num_ak4_6, 0);
+  const totalAk79   = results.reduce((s, r) => s + r.num_ak7_9, 0);
+  const totalF69    = results.reduce((s, r) => s + r.num_fritids_6_9, 0);
+  const totalF1012  = results.reduce((s, r) => s + r.num_fritids_10_12, 0);
+
   const pieData = [
     { name: "Kommunala", value: kommunalBudget },
     { name: "Fristående", value: fristaendeBudget },
   ];
 
   const barData = [
-    {
-      name: "Totalt",
-      amount: summary.avg_per_pupil_overall,
-    },
-    {
-      name: "Kommunala",
-      amount: summary.avg_per_pupil_kommunal,
-    },
-    {
-      name: "Fristående",
-      amount: summary.avg_per_pupil_fristaende,
-    },
+    { name: "Totalt", amount: summary.avg_per_pupil_overall },
+    { name: "Kommunala", amount: summary.avg_per_pupil_kommunal },
+    { name: "Fristående", amount: summary.avg_per_pupil_fristaende },
   ];
 
   const stats = [
-    { label: "Total budget", value: fmtSek(summary.total_budget) },
-    { label: "Antal skolor", value: `${summary.total_schools} (${summary.kommunal_schools} kommunala, ${summary.fristaende_schools} fristående)` },
-    { label: "Totalt antal elever", value: `${fmt(summary.total_pupils)} (${fmt(summary.kommunal_pupils)} kommunala, ${fmt(summary.fristaende_pupils)} fristående)` },
-    { label: "Genomsnitt per elev", value: fmtSek(summary.avg_per_pupil_overall) },
+    { label: "Total budget", value: fmtMkr(summary.total_budget) },
+    {
+      label: "Antal skolor",
+      value: `${summary.total_schools} (${summary.kommunal_schools} kommunala, ${summary.fristaende_schools} fristående)`,
+    },
+    {
+      label: "Skolelever totalt",
+      value: `${fmt(summary.total_pupils)} (${fmt(summary.kommunal_pupils)} kommunala, ${fmt(summary.fristaende_pupils)} fristående)`,
+    },
+    { label: "Genomsnitt per elev (skola)", value: fmtSek(summary.avg_per_pupil_overall) },
     { label: "Lägsta tilldelning", value: fmtSek(summary.min_allocation) },
     { label: "Högsta tilldelning", value: fmtSek(summary.max_allocation) },
-    { label: "Fristående andel av budget", value: `${summary.fristaende_budget_share.toFixed(1)}%` },
-    { label: "Socioekonomiskt tillägg totalt", value: `${fmtSek(summary.socioeconomic_total)} (${summary.socioeconomic_share.toFixed(1)}% av budget)` },
+    {
+      label: "Fristående andel av budget",
+      value: `${summary.fristaende_budget_share.toFixed(1)}%`,
+    },
+    {
+      label: "Strukturell tilldelning",
+      value: `${fmtMkr(summary.socioeconomic_total)} (${summary.socioeconomic_share.toFixed(1)}% av budget)`,
+    },
   ];
 
   return (
@@ -121,6 +136,33 @@ export function SummaryPage() {
           </Card>
         ))}
       </div>
+
+      {/* Year-group pupil breakdown */}
+      <Card className="border-border/60">
+        <CardContent className="pt-6">
+          <h3
+            className="mb-4 text-lg"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            Elever per åldersgrupp
+          </h3>
+          <div className="grid grid-cols-3 gap-4 sm:grid-cols-6">
+            {[
+              { label: "FSK", value: totalFsk },
+              { label: "ÅK1-3", value: totalAk13 },
+              { label: "ÅK4-6", value: totalAk46 },
+              { label: "ÅK7-9", value: totalAk79 },
+              { label: "Fritids 6-9", value: totalF69 },
+              { label: "Fritids 10-12", value: totalF1012 },
+            ].map(({ label, value }) => (
+              <div key={label} className="rounded-lg bg-muted/40 p-3 text-center">
+                <p className="text-xs font-medium text-muted-foreground">{label}</p>
+                <p className="mt-1 text-xl font-semibold text-foreground">{fmt(value)}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Charts */}
       <div className="grid gap-6 lg:grid-cols-2">
@@ -167,7 +209,7 @@ export function SummaryPage() {
               className="mb-4 text-lg"
               style={{ fontFamily: "var(--font-heading)" }}
             >
-              Genomsnitt per elev
+              Genomsnitt per elev (skola)
             </h3>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={barData}>

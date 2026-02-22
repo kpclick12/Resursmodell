@@ -27,9 +27,15 @@ async def upload_csv(
                 session_id=session_id,
                 school_name=school.school_name,
                 school_type=school.school_type,
-                num_students=school.num_students,
+                num_students=0,  # legacy column, kept for compat
                 socioeconomic_index=school.socioeconomic_index,
                 district=school.district,
+                num_fsk=school.num_fsk,
+                num_ak1_3=school.num_ak1_3,
+                num_ak4_6=school.num_ak4_6,
+                num_ak7_9=school.num_ak7_9,
+                num_fritids_6_9=school.num_fritids_6_9,
+                num_fritids_10_12=school.num_fritids_10_12,
             )
         )
     await db.commit()

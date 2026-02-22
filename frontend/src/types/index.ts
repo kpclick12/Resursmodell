@@ -1,27 +1,48 @@
 export interface SchoolInput {
   school_name: string;
   school_type: "kommunal" | "fristående";
-  num_students: number;
+  num_fsk: number;
+  num_ak1_3: number;
+  num_ak4_6: number;
+  num_ak7_9: number;
+  num_fritids_6_9: number;
+  num_fritids_10_12: number;
   socioeconomic_index: number;
   district?: string | null;
 }
 
 export interface CalculationParameters {
-  base_amount_per_pupil: number;
-  municipal_supplement: number;
-  socioeconomic_weight: number;
-  max_socioeconomic_supplement: number;
+  g_fsk: number;
+  g_ak13: number;
+  g_ak46: number;
+  g_ak79: number;
+  g_fritids_69: number;
+  g_fritids_1012: number;
+  structural_share: number;
   index_scale: number;
 }
 
 export interface SchoolResult {
   school_name: string;
   school_type: string;
-  num_students: number;
+  num_fsk: number;
+  num_ak1_3: number;
+  num_ak4_6: number;
+  num_ak7_9: number;
+  num_fritids_6_9: number;
+  num_fritids_10_12: number;
+  total_school_students: number;
+  total_fritids_students: number;
   socioeconomic_index: number;
   district?: string | null;
-  socioeconomic_addition_per_pupil: number;
-  total_per_pupil: number;
+  per_pupil_fsk: number;
+  per_pupil_ak1_3: number;
+  per_pupil_ak4_6: number;
+  per_pupil_ak7_9: number;
+  per_pupil_fritids_6_9: number;
+  per_pupil_fritids_10_12: number;
+  total_school_allocation: number;
+  total_fritids_allocation: number;
   total_allocation: number;
 }
 
