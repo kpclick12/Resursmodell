@@ -1,0 +1,25 @@
+school_name,school_type,elever_f,elever_ak1,elever_ak2,elever_ak3,elever_ak4,elever_ak5,elever_ak6,elever_ak7,elever_ak8,elever_ak9,elever_fritids_6_9,elever_fritids_10_12,socioeconomic_index,district
+Bräckeskolan,kommunal,81,71,74,73,74,75,75,0,0,0,259,49,95,Västra Hisingen
+Bergsjöskolan,kommunal,48,39,41,40,37,38,38,63,63,62,73,25,242,Angered
+Bergumsskolan,kommunal,62,57,59,59,86,87,86,106,107,107,198,53,78,Lundby
+Sjumilaskolan,kommunal,55,47,49,49,46,46,46,0,0,0,169,41,168,Biskopsgården
+Guldhedsskolan,kommunal,40,33,35,34,32,33,33,0,0,0,115,28,62,Majorna-Linné
+Flatåsskolan,kommunal,50,45,47,46,47,48,47,0,0,0,163,38,82,Västra Göteborg
+Gamlestadsskolan,kommunal,55,48,51,49,48,49,48,0,0,0,172,42,105,Östra Göteborg
+Torslandaskolan,kommunal,65,58,60,60,58,59,58,0,0,0,205,48,45,Västra Hisingen
+Frölundaskolan,kommunal,58,51,52,52,50,51,51,0,0,0,178,43,112,Askim-Frölunda-Högsbo
+Hjällboskolan,kommunal,47,41,42,41,40,41,40,0,0,0,142,35,188,Angered
+Hovåsskolan,kommunal,36,31,32,32,30,31,31,0,0,0,108,26,38,Askim-Frölunda-Högsbo
+Lövgärdesskolan,kommunal,40,35,36,34,34,34,34,0,0,0,120,29,155,Angered
+Styrsöskolan,kommunal,24,21,22,21,21,21,20,0,0,0,72,17,48,Västra Göteborg
+Rambergsskolan,kommunal,50,44,45,45,43,44,43,0,0,0,153,37,82,Lundby
+Askimsskolan,kommunal,60,53,55,54,52,53,53,0,0,0,185,44,47,Askim-Frölunda-Högsbo
+Norra Hisingen skola,kommunal,47,41,43,42,41,41,41,0,0,0,144,34,115,Norra Hisingen
+Kannebäcksskolan,kommunal,43,37,38,38,36,37,37,0,0,0,129,31,95,Majorna-Linné
+Vittra Kronhusparken,fristående,33,29,30,29,28,29,29,0,0,0,100,24,68,Centrum
+Internationella Engelska Skolan Göteborg,fristående,70,61,64,63,61,62,62,0,0,0,218,52,72,Östra Göteborg
+Kunskapsskolan Krokslätt,fristående,60,52,54,54,52,53,52,0,0,0,185,44,75,Örgryte-Härlanda
+Montessoriskolan Centrum,fristående,26,22,24,23,22,23,22,0,0,0,79,19,58,Centrum
+Fridaskolan Mölndalsvägen,fristående,38,33,34,33,32,33,33,0,0,0,115,27,82,Majorna-Linné
+Thoren Framtid Angered,fristående,31,27,28,27,26,27,27,0,0,0,94,22,145,Angered
+Raoul Wallenbergskolan,fristående,45,39,41,40,39,39,39,0,0,0,138,33,78,Lundby
