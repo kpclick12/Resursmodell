@@ -14,33 +14,62 @@ class TokenResponse(BaseModel):
 class SchoolInput(BaseModel):
     school_name: str
     school_type: str  # "kommunal" | "fristående"
-    num_fsk: int = 0
-    num_ak1_3: int = 0
-    num_ak4_6: int = 0
-    num_ak7_9: int = 0
-    num_fritids_6_9: int = 0
-    num_fritids_10_12: int = 0
+    elever_f: int = 0
+    elever_ak1: int = 0
+    elever_ak2: int = 0
+    elever_ak3: int = 0
+    elever_ak4: int = 0
+    elever_ak5: int = 0
+    elever_ak6: int = 0
+    elever_ak7: int = 0
+    elever_ak8: int = 0
+    elever_ak9: int = 0
+    elever_fritids_6_9: int = 0
+    elever_fritids_10_12: int = 0
     socioeconomic_index: float
     district: str | None = None
 
     @property
     def total_school_students(self) -> int:
-        return self.num_fsk + self.num_ak1_3 + self.num_ak4_6 + self.num_ak7_9
+        return (
+            self.elever_f + self.elever_ak1 + self.elever_ak2 + self.elever_ak3
+            + self.elever_ak4 + self.elever_ak5 + self.elever_ak6
+            + self.elever_ak7 + self.elever_ak8 + self.elever_ak9
+        )
 
     @property
     def total_fritids_students(self) -> int:
-        return self.num_fritids_6_9 + self.num_fritids_10_12
+        return self.elever_fritids_6_9 + self.elever_fritids_10_12
 
 
 class CalculationParameters(BaseModel):
-    g_fsk: float = 49_500        # Förskoleklass grundbelopp
-    g_ak13: float = 62_000       # ÅK1-3 grundbelopp
-    g_ak46: float = 66_100       # ÅK4-6 grundbelopp
-    g_ak79: float = 70_100       # ÅK7-9 grundbelopp
-    g_fritids_69: float = 30_800   # Fritids age 6–9 grundbelopp
-    g_fritids_1012: float = 9_900  # Fritids age 10–12 grundbelopp
-    structural_share: float = 0.19  # 19% redistributed by socioeconomic index
-    index_scale: float = 100.0      # index normalized to avg=100
+    total_budget: float                          # Total budget to distribute (tkr)
+    budget_grundskola: float = 0.85             # Share of budget for grundskola
+    budget_fritidshem: float = 0.15             # Share of budget for fritidshem
+    andel_struktur_grundskola: float = 0.19     # Structural share for grundskola
+    andel_struktur_fritidshem: float = 0.10     # Structural share for fritidshem
+    avdrag_kommunal_procent: float = 0.48       # Local deduction for kommunal schools
+    moms_kompensation: float = 0.06             # VAT compensation for fristående
+    admin_kompensation_fri: float = 0.03        # Admin supplement for fristående
+    # Year weights (grundskola)
+    vikt_f: float = 1.000
+    vikt_ak1: float = 1.000
+    vikt_ak2: float = 1.180
+    vikt_ak3: float = 1.310
+    vikt_ak4: float = 1.260
+    vikt_ak5: float = 1.290
+    vikt_ak6: float = 1.350
+    vikt_ak7: float = 1.420
+    vikt_ak8: float = 1.430
+    vikt_ak9: float = 1.430
+    # Year weights (fritidshem)
+    vikt_fritids_6_9: float = 1.000
+    vikt_fritids_10_12: float = 0.340
+    # Tillägg (tkr/elev, kommunala only, default 0)
+    tillagg_skoladmin_per_elev: float = 0.0
+    tillagg_likvärdig_grund_per_elev: float = 0.0
+    tillagg_likvärdig_struktur_per_elev: float = 0.0
+    tillagg_fritidsavgift_per_fritidsbarn: float = 0.0
 
 
 class CalculateRequest(BaseModel):
@@ -51,25 +80,34 @@ class CalculateRequest(BaseModel):
 class SchoolResult(BaseModel):
     school_name: str
     school_type: str
-    num_fsk: int
-    num_ak1_3: int
-    num_ak4_6: int
-    num_ak7_9: int
-    num_fritids_6_9: int
-    num_fritids_10_12: int
+    elever_f: int
+    elever_ak1: int
+    elever_ak2: int
+    elever_ak3: int
+    elever_ak4: int
+    elever_ak5: int
+    elever_ak6: int
+    elever_ak7: int
+    elever_ak8: int
+    elever_ak9: int
+    elever_fritids_6_9: int
+    elever_fritids_10_12: int
     total_school_students: int
     total_fritids_students: int
     socioeconomic_index: float
     district: str | None = None
-    per_pupil_fsk: float
-    per_pupil_ak1_3: float
-    per_pupil_ak4_6: float
-    per_pupil_ak7_9: float
-    per_pupil_fritids_6_9: float
-    per_pupil_fritids_10_12: float
-    total_school_allocation: float
-    total_fritids_allocation: float
-    total_allocation: float
+    # Allocation breakdown (tkr)
+    grundersättning: float
+    strukturersättning: float
+    grundersättning_fritids: float
+    strukturersättning_fritids: float
+    grundbelopp_brutto: float
+    lokalt_avdrag: float
+    moms_tillagg: float
+    admin_tillagg: float
+    tillagg_totalt: float
+    netto: float
+    nettokvot: float | None = None   # kommunal only
 
 
 class SummaryResult(BaseModel):
@@ -77,23 +115,25 @@ class SummaryResult(BaseModel):
     total_schools: int
     kommunal_schools: int
     fristaende_schools: int
-    total_pupils: int           # school pupils only (fsk+ak1_3+ak4_6+ak7_9)
+    total_pupils: int           # school pupils only
     kommunal_pupils: int
     fristaende_pupils: int
-    avg_per_pupil_overall: float   # total_school_alloc / total_school_pupils
-    avg_per_pupil_kommunal: float
-    avg_per_pupil_fristaende: float
+    avg_netto_per_pupil_overall: float
+    avg_netto_per_pupil_kommunal: float
+    avg_netto_per_pupil_fristaende: float
     min_allocation: float
     max_allocation: float
     fristaende_budget_share: float
-    socioeconomic_total: float     # structural (index-driven) portion of budget
-    socioeconomic_share: float     # structural / total_budget × 100
+    strukturersattning_total: float
+    strukturersattning_share: float
+    model_version: str = "v2"
 
 
 class CalculateResponse(BaseModel):
     session_id: str = ""
     summary: SummaryResult
     schools: list[SchoolResult]
+    model_version: str = "v2"
 
 
 class SavePlanRequest(BaseModel):
@@ -120,3 +160,4 @@ class PlanDetail(BaseModel):
     summary: SummaryResult
     schools: list[SchoolResult]
     created_at: datetime.datetime
+    model_version: str = "v2"

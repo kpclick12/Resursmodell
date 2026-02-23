@@ -19,13 +19,24 @@ class SchoolRecord(Base):
     uploaded_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, default=datetime.datetime.utcnow
     )
-    # New year-group columns
+    # v1 year-group columns (grouped)
     num_fsk: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
     num_ak1_3: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
     num_ak4_6: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
     num_ak7_9: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
     num_fritids_6_9: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
     num_fritids_10_12: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
+    # v2 individual year-group columns
+    elever_f: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    elever_ak1: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    elever_ak2: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    elever_ak3: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    elever_ak4: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    elever_ak5: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    elever_ak6: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    elever_ak7: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    elever_ak8: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    elever_ak9: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class CalculationSession(Base):
@@ -45,7 +56,7 @@ class CalculationSession(Base):
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, default=datetime.datetime.utcnow
     )
-    # New year-group grundbelopp columns
+    # v1 year-group grundbelopp columns
     g_fsk: Mapped[float | None] = mapped_column(Float, nullable=True)
     g_ak13: Mapped[float | None] = mapped_column(Float, nullable=True)
     g_ak46: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -54,6 +65,35 @@ class CalculationSession(Base):
     g_fritids_1012: Mapped[float | None] = mapped_column(Float, nullable=True)
     structural_share: Mapped[float | None] = mapped_column(Float, nullable=True)
     new_index_scale: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # v2 model version discriminant
+    model_version: Mapped[str | None] = mapped_column(String, nullable=True)
+    # v2 budget params
+    total_budget_param: Mapped[float | None] = mapped_column(Float, nullable=True)
+    budget_grundskola: Mapped[float | None] = mapped_column(Float, nullable=True)
+    budget_fritidshem: Mapped[float | None] = mapped_column(Float, nullable=True)
+    andel_struktur_grundskola: Mapped[float | None] = mapped_column(Float, nullable=True)
+    andel_struktur_fritidshem: Mapped[float | None] = mapped_column(Float, nullable=True)
+    avdrag_kommunal_procent: Mapped[float | None] = mapped_column(Float, nullable=True)
+    moms_kompensation: Mapped[float | None] = mapped_column(Float, nullable=True)
+    admin_kompensation_fri: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # v2 weight params
+    vikt_f: Mapped[float | None] = mapped_column(Float, nullable=True)
+    vikt_ak1: Mapped[float | None] = mapped_column(Float, nullable=True)
+    vikt_ak2: Mapped[float | None] = mapped_column(Float, nullable=True)
+    vikt_ak3: Mapped[float | None] = mapped_column(Float, nullable=True)
+    vikt_ak4: Mapped[float | None] = mapped_column(Float, nullable=True)
+    vikt_ak5: Mapped[float | None] = mapped_column(Float, nullable=True)
+    vikt_ak6: Mapped[float | None] = mapped_column(Float, nullable=True)
+    vikt_ak7: Mapped[float | None] = mapped_column(Float, nullable=True)
+    vikt_ak8: Mapped[float | None] = mapped_column(Float, nullable=True)
+    vikt_ak9: Mapped[float | None] = mapped_column(Float, nullable=True)
+    vikt_fritids_6_9: Mapped[float | None] = mapped_column(Float, nullable=True)
+    vikt_fritids_10_12: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # v2 tillägg params
+    tillagg_skoladmin_per_elev: Mapped[float | None] = mapped_column(Float, nullable=True)
+    tillagg_likvärdig_grund_per_elev: Mapped[float | None] = mapped_column(Float, nullable=True)
+    tillagg_likvärdig_struktur_per_elev: Mapped[float | None] = mapped_column(Float, nullable=True)
+    tillagg_fritidsavgift_per_fritidsbarn: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     results: Mapped[list["AllocationResult"]] = relationship(
         back_populates="session", cascade="all, delete-orphan"
@@ -74,22 +114,45 @@ class AllocationResult(Base):
     socioeconomic_addition_per_pupil: Mapped[float | None] = mapped_column(Float, nullable=True, default=0)
     total_per_pupil: Mapped[float | None] = mapped_column(Float, nullable=True, default=0)
     total_allocation: Mapped[float] = mapped_column(Float)
-    # New year-group student count columns
+    # v1 year-group student count columns
     num_fsk: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
     num_ak1_3: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
     num_ak4_6: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
     num_ak7_9: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
     num_fritids_6_9: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
     num_fritids_10_12: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
-    # New per-pupil amount columns
+    # v1 per-pupil amount columns
     per_pupil_fsk: Mapped[float | None] = mapped_column(Float, nullable=True, default=0)
     per_pupil_ak1_3: Mapped[float | None] = mapped_column(Float, nullable=True, default=0)
     per_pupil_ak4_6: Mapped[float | None] = mapped_column(Float, nullable=True, default=0)
     per_pupil_ak7_9: Mapped[float | None] = mapped_column(Float, nullable=True, default=0)
     per_pupil_fritids_6_9: Mapped[float | None] = mapped_column(Float, nullable=True, default=0)
     per_pupil_fritids_10_12: Mapped[float | None] = mapped_column(Float, nullable=True, default=0)
-    # New allocation breakdown columns
+    # v1 allocation breakdown columns
     total_school_allocation: Mapped[float | None] = mapped_column(Float, nullable=True, default=0)
     total_fritids_allocation: Mapped[float | None] = mapped_column(Float, nullable=True, default=0)
+    # v2 individual year-group columns
+    elever_f: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    elever_ak1: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    elever_ak2: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    elever_ak3: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    elever_ak4: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    elever_ak5: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    elever_ak6: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    elever_ak7: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    elever_ak8: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    elever_ak9: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # v2 allocation breakdown columns (all in tkr)
+    grundersattning: Mapped[float | None] = mapped_column(Float, nullable=True)
+    strukturersattning: Mapped[float | None] = mapped_column(Float, nullable=True)
+    grundersattning_fritids: Mapped[float | None] = mapped_column(Float, nullable=True)
+    strukturersattning_fritids: Mapped[float | None] = mapped_column(Float, nullable=True)
+    grundbelopp_brutto: Mapped[float | None] = mapped_column(Float, nullable=True)
+    lokalt_avdrag: Mapped[float | None] = mapped_column(Float, nullable=True)
+    moms_tillagg: Mapped[float | None] = mapped_column(Float, nullable=True)
+    admin_tillagg: Mapped[float | None] = mapped_column(Float, nullable=True)
+    tillagg_totalt: Mapped[float | None] = mapped_column(Float, nullable=True)
+    netto: Mapped[float | None] = mapped_column(Float, nullable=True)
+    nettokvot: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     session: Mapped["CalculationSession"] = relationship(back_populates="results")

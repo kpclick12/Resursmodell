@@ -23,22 +23,42 @@ async def calculate(
     p = body.parameters
     calc_session = CalculationSession(
         session_id=session_id,
-        # Legacy columns written as 0 for new-format sessions
+        # Legacy columns written as 0 for backward compat
         base_amount_per_pupil=0,
         municipal_supplement=0,
         socioeconomic_weight=0,
         max_socioeconomic_supplement=0,
-        index_scale=p.index_scale,
-        total_budget=response.summary.total_budget,
-        # New parameter columns
-        g_fsk=p.g_fsk,
-        g_ak13=p.g_ak13,
-        g_ak46=p.g_ak46,
-        g_ak79=p.g_ak79,
-        g_fritids_69=p.g_fritids_69,
-        g_fritids_1012=p.g_fritids_1012,
-        structural_share=p.structural_share,
-        new_index_scale=p.index_scale,
+        index_scale=100,
+        total_budget=p.total_budget,
+        # v2 model discriminant
+        model_version="v2",
+        # v2 budget params
+        total_budget_param=p.total_budget,
+        budget_grundskola=p.budget_grundskola,
+        budget_fritidshem=p.budget_fritidshem,
+        andel_struktur_grundskola=p.andel_struktur_grundskola,
+        andel_struktur_fritidshem=p.andel_struktur_fritidshem,
+        avdrag_kommunal_procent=p.avdrag_kommunal_procent,
+        moms_kompensation=p.moms_kompensation,
+        admin_kompensation_fri=p.admin_kompensation_fri,
+        # v2 weights
+        vikt_f=p.vikt_f,
+        vikt_ak1=p.vikt_ak1,
+        vikt_ak2=p.vikt_ak2,
+        vikt_ak3=p.vikt_ak3,
+        vikt_ak4=p.vikt_ak4,
+        vikt_ak5=p.vikt_ak5,
+        vikt_ak6=p.vikt_ak6,
+        vikt_ak7=p.vikt_ak7,
+        vikt_ak8=p.vikt_ak8,
+        vikt_ak9=p.vikt_ak9,
+        vikt_fritids_6_9=p.vikt_fritids_6_9,
+        vikt_fritids_10_12=p.vikt_fritids_10_12,
+        # v2 tillägg
+        tillagg_skoladmin_per_elev=p.tillagg_skoladmin_per_elev,
+        tillagg_likvärdig_grund_per_elev=p.tillagg_likvärdig_grund_per_elev,
+        tillagg_likvärdig_struktur_per_elev=p.tillagg_likvärdig_struktur_per_elev,
+        tillagg_fritidsavgift_per_fritidsbarn=p.tillagg_fritidsavgift_per_fritidsbarn,
     )
     db.add(calc_session)
     await db.flush()
@@ -55,24 +75,32 @@ async def calculate(
                 district=school.district,
                 socioeconomic_addition_per_pupil=0,
                 total_per_pupil=0,
-                total_allocation=school.total_allocation,
-                # New year-group student counts
-                num_fsk=school.num_fsk,
-                num_ak1_3=school.num_ak1_3,
-                num_ak4_6=school.num_ak4_6,
-                num_ak7_9=school.num_ak7_9,
-                num_fritids_6_9=school.num_fritids_6_9,
-                num_fritids_10_12=school.num_fritids_10_12,
-                # New per-pupil amounts
-                per_pupil_fsk=school.per_pupil_fsk,
-                per_pupil_ak1_3=school.per_pupil_ak1_3,
-                per_pupil_ak4_6=school.per_pupil_ak4_6,
-                per_pupil_ak7_9=school.per_pupil_ak7_9,
-                per_pupil_fritids_6_9=school.per_pupil_fritids_6_9,
-                per_pupil_fritids_10_12=school.per_pupil_fritids_10_12,
-                # New allocation breakdown
-                total_school_allocation=school.total_school_allocation,
-                total_fritids_allocation=school.total_fritids_allocation,
+                total_allocation=school.netto,  # v1 compat: write netto to total_allocation
+                # v2 individual year counts
+                elever_f=school.elever_f,
+                elever_ak1=school.elever_ak1,
+                elever_ak2=school.elever_ak2,
+                elever_ak3=school.elever_ak3,
+                elever_ak4=school.elever_ak4,
+                elever_ak5=school.elever_ak5,
+                elever_ak6=school.elever_ak6,
+                elever_ak7=school.elever_ak7,
+                elever_ak8=school.elever_ak8,
+                elever_ak9=school.elever_ak9,
+                num_fritids_6_9=school.elever_fritids_6_9,
+                num_fritids_10_12=school.elever_fritids_10_12,
+                # v2 breakdown
+                grundersattning=school.grundersättning,
+                strukturersattning=school.strukturersättning,
+                grundersattning_fritids=school.grundersättning_fritids,
+                strukturersattning_fritids=school.strukturersättning_fritids,
+                grundbelopp_brutto=school.grundbelopp_brutto,
+                lokalt_avdrag=school.lokalt_avdrag,
+                moms_tillagg=school.moms_tillagg,
+                admin_tillagg=school.admin_tillagg,
+                tillagg_totalt=school.tillagg_totalt,
+                netto=school.netto,
+                nettokvot=school.nettokvot,
             )
         )
     await db.commit()

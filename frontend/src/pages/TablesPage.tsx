@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowRight, Download, ArrowUpDown } from "lucide-react";
+import { ArrowRight, Download, ArrowUpDown, AlertCircle } from "lucide-react";
 import type { SchoolResult } from "@/types";
 import { PlanSelector } from "@/components/plans/PlanSelector";
 
@@ -20,7 +20,10 @@ function fmt(n: number): string {
 }
 
 function fmtTkr(n: number): string {
-  return new Intl.NumberFormat("sv-SE").format(Math.round(n / 1000));
+  return new Intl.NumberFormat("sv-SE", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(n);
 }
 
 type SortKey =
@@ -29,19 +32,20 @@ type SortKey =
   | "socioeconomic_index"
   | "total_school_students"
   | "total_fritids_students"
-  | "num_fsk"
-  | "num_ak1_3"
-  | "num_ak4_6"
-  | "num_ak7_9"
-  | "num_fritids_6_9"
-  | "num_fritids_10_12"
-  | "per_pupil_fsk"
-  | "per_pupil_ak1_3"
-  | "per_pupil_ak4_6"
-  | "per_pupil_ak7_9"
-  | "per_pupil_fritids_6_9"
-  | "per_pupil_fritids_10_12"
-  | "total_allocation";
+  | "elever_f"
+  | "elever_ak1"
+  | "elever_ak2"
+  | "elever_ak3"
+  | "elever_ak4"
+  | "elever_ak5"
+  | "elever_ak6"
+  | "elever_ak7"
+  | "elever_ak8"
+  | "elever_ak9"
+  | "elever_fritids_6_9"
+  | "elever_fritids_10_12"
+  | "grundbelopp_brutto"
+  | "netto";
 
 type SortDir = "asc" | "desc";
 
@@ -56,10 +60,12 @@ function SchoolTable({
   title,
   schools,
   filenamePrefix,
+  isV1,
 }: {
   title: string;
   schools: SchoolResult[];
   filenamePrefix: string;
+  isV1: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("school_name");
@@ -101,41 +107,57 @@ function SchoolTable({
       "Skolnamn",
       "Stadsdel",
       "Socioekonomiskt index",
-      "FSK",
-      "ÅK1-3",
-      "ÅK4-6",
-      "ÅK7-9",
+      "F",
+      "Åk1",
+      "Åk2",
+      "Åk3",
+      "Åk4",
+      "Åk5",
+      "Åk6",
+      "Åk7",
+      "Åk8",
+      "Åk9",
       "Fritids 6-9",
       "Fritids 10-12",
-      "Totalt antal skola",
-      "Totalt antal fritids",
-      "Per elev FSK (kr)",
-      "Per elev ÅK1-3 (kr)",
-      "Per elev ÅK4-6 (kr)",
-      "Per elev ÅK7-9 (kr)",
-      "Per elev F6-9 (kr)",
-      "Per elev F10-12 (kr)",
-      "Budget (tkr)",
+      "Totalt skola",
+      "Totalt fritids",
+      "Grundersättning GS (tkr)",
+      "Strukturersättning GS (tkr)",
+      "Grundersättning Fritids (tkr)",
+      "Strukturersättning Fritids (tkr)",
+      "Brutto (tkr)",
+      "Avdrag/Moms+Admin (tkr)",
+      "Tillägg totalt (tkr)",
+      "Netto (tkr)",
     ];
     const rows = sorted.map((s) => [
       s.school_name,
       s.district || "",
       s.socioeconomic_index,
-      s.num_fsk,
-      s.num_ak1_3,
-      s.num_ak4_6,
-      s.num_ak7_9,
-      s.num_fritids_6_9,
-      s.num_fritids_10_12,
+      s.elever_f,
+      s.elever_ak1,
+      s.elever_ak2,
+      s.elever_ak3,
+      s.elever_ak4,
+      s.elever_ak5,
+      s.elever_ak6,
+      s.elever_ak7,
+      s.elever_ak8,
+      s.elever_ak9,
+      s.elever_fritids_6_9,
+      s.elever_fritids_10_12,
       s.total_school_students,
       s.total_fritids_students,
-      s.per_pupil_fsk,
-      s.per_pupil_ak1_3,
-      s.per_pupil_ak4_6,
-      s.per_pupil_ak7_9,
-      s.per_pupil_fritids_6_9,
-      s.per_pupil_fritids_10_12,
-      Math.round(s.total_allocation / 1000),
+      s["grundersättning"].toFixed(1),
+      s["strukturersättning"].toFixed(1),
+      s["grundersättning_fritids"].toFixed(1),
+      s["strukturersättning_fritids"].toFixed(1),
+      s.grundbelopp_brutto.toFixed(1),
+      s.school_type === "kommunal"
+        ? s.lokalt_avdrag.toFixed(1)
+        : (s.moms_tillagg + s.admin_tillagg).toFixed(1),
+      s.tillagg_totalt.toFixed(1),
+      s.netto.toFixed(1),
     ]);
     const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -196,113 +218,169 @@ function SchoolTable({
         </div>
       </div>
 
+      {isV1 && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-400">
+          <AlertCircle className="size-4 shrink-0" />
+          Sparad med gamla modellen — beräkningsdetaljer (grundersättning, strukturersättning, brutto) visas ej.
+        </div>
+      )}
+
       <div className="overflow-x-auto rounded-lg border border-border/60">
         <Table className="text-xs">
-          {/* Two-row grouped header matching official table layout */}
           <TableHeader>
             {/* Group row */}
             <TableRow className="bg-muted/60 border-b-0">
-              <TableHead rowSpan={2} className="align-middle font-semibold text-foreground border-r border-border/40">
+              <TableHead rowSpan={2} className="align-middle font-semibold text-foreground border-r border-border/40 whitespace-nowrap">
                 Skolenhet
               </TableHead>
               <TableHead rowSpan={2} className="align-middle text-center whitespace-nowrap border-r border-border/40">
                 Socioek.<br />index
               </TableHead>
-              {/* Antal elever group */}
-              <TableHead colSpan={4} className="text-center border-b border-border/40 border-r border-border/20">
-                Antal elever
+              {/* Antal elever — individual years */}
+              <TableHead colSpan={10} className="text-center border-b border-border/40 border-r border-border/20">
+                Antal elever per åk
               </TableHead>
-              {/* Antal fritids group */}
+              {/* Antal fritids */}
               <TableHead colSpan={2} className="text-center border-b border-border/40 border-r border-border/20">
                 Antal fritids
               </TableHead>
-              {/* Totalt antal group */}
+              {/* Totalt */}
               <TableHead colSpan={2} className="text-center border-b border-border/40 border-r border-border/20">
                 Totalt antal
               </TableHead>
-              {/* Per elev group */}
-              <TableHead colSpan={6} className="text-center border-b border-border/40 border-r border-border/20">
-                Belopp per elev (kr)
+              {/* Grundersättning */}
+              <TableHead colSpan={2} className="text-center border-b border-border/40 border-r border-border/20">
+                Grundersättning (tkr)
               </TableHead>
-              {/* Budget */}
+              {/* Strukturersättning */}
+              <TableHead colSpan={2} className="text-center border-b border-border/40 border-r border-border/20">
+                Strukturersättning (tkr)
+              </TableHead>
+              {/* Brutto */}
+              <TableHead rowSpan={2} className="align-middle text-right whitespace-nowrap border-r border-border/20">
+                Brutto<br />(tkr)
+              </TableHead>
+              {/* Avdrag/Tillägg */}
+              <TableHead colSpan={2} className="text-center border-b border-border/40 border-r border-border/20">
+                Avdrag / Tillägg (tkr)
+              </TableHead>
+              {/* Netto */}
               <TableHead rowSpan={2} className="align-middle text-right font-semibold text-foreground">
-                Budget<br />(tkr)
+                Netto<br />(tkr)
               </TableHead>
             </TableRow>
             {/* Sub-header row */}
             <TableRow className="bg-muted/40">
-              {/* Antal elever sub-headers */}
-              <SortableHead label="FSK" field="num_fsk" className="text-right" />
-              <SortableHead label="ÅK 1-3" field="num_ak1_3" className="text-right" />
-              <SortableHead label="ÅK 4-6" field="num_ak4_6" className="text-right" />
-              <SortableHead label="ÅK 7-9" field="num_ak7_9" className="text-right border-r border-border/20" />
-              {/* Antal fritids sub-headers */}
-              <SortableHead label="F6-9" field="num_fritids_6_9" className="text-right" />
-              <SortableHead label="F10-12" field="num_fritids_10_12" className="text-right border-r border-border/20" />
-              {/* Totalt sub-headers */}
+              {/* Elever per åk */}
+              <SortableHead label="F" field="elever_f" className="text-right" />
+              <SortableHead label="Åk1" field="elever_ak1" className="text-right" />
+              <SortableHead label="Åk2" field="elever_ak2" className="text-right" />
+              <SortableHead label="Åk3" field="elever_ak3" className="text-right" />
+              <SortableHead label="Åk4" field="elever_ak4" className="text-right" />
+              <SortableHead label="Åk5" field="elever_ak5" className="text-right" />
+              <SortableHead label="Åk6" field="elever_ak6" className="text-right" />
+              <SortableHead label="Åk7" field="elever_ak7" className="text-right" />
+              <SortableHead label="Åk8" field="elever_ak8" className="text-right" />
+              <SortableHead label="Åk9" field="elever_ak9" className="text-right border-r border-border/20" />
+              {/* Fritids */}
+              <SortableHead label="6-9" field="elever_fritids_6_9" className="text-right" />
+              <SortableHead label="10-12" field="elever_fritids_10_12" className="text-right border-r border-border/20" />
+              {/* Totalt */}
               <SortableHead label="Skola" field="total_school_students" className="text-right" />
               <SortableHead label="Fritids" field="total_fritids_students" className="text-right border-r border-border/20" />
-              {/* Per elev sub-headers */}
-              <SortableHead label="FSK" field="per_pupil_fsk" className="text-right" />
-              <SortableHead label="ÅK 1-3" field="per_pupil_ak1_3" className="text-right" />
-              <SortableHead label="ÅK 4-6" field="per_pupil_ak4_6" className="text-right" />
-              <SortableHead label="ÅK 7-9" field="per_pupil_ak7_9" className="text-right" />
-              <SortableHead label="F6-9 år" field="per_pupil_fritids_6_9" className="text-right" />
-              <SortableHead label="F10-12 år" field="per_pupil_fritids_10_12" className="text-right border-r border-border/20" />
+              {/* Grundersättning */}
+              <TableHead className="text-right text-muted-foreground">GS</TableHead>
+              <TableHead className="text-right text-muted-foreground border-r border-border/20">Fritids</TableHead>
+              {/* Strukturersättning */}
+              <TableHead className="text-right text-muted-foreground">GS</TableHead>
+              <TableHead className="text-right text-muted-foreground border-r border-border/20">Fritids</TableHead>
+              {/* Avdrag/Tillägg */}
+              <TableHead className="text-right text-muted-foreground">Avdrag</TableHead>
+              <TableHead className="text-right text-muted-foreground border-r border-border/20">Tillägg</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sorted.map((s, i) => (
-              <TableRow key={i} className="even:bg-muted/20">
-                {/* School name + district */}
-                <TableCell className="font-medium whitespace-nowrap border-r border-border/40">
-                  <div>{s.school_name}</div>
-                  {s.district && (
-                    <div className="text-muted-foreground/60 font-normal">{s.district}</div>
-                  )}
-                </TableCell>
-                {/* Index */}
-                <TableCell className="text-center border-r border-border/40">
-                  {s.socioeconomic_index}
-                </TableCell>
-                {/* Student counts — school */}
-                <TableCell className="text-right"><ZeroCell value={s.num_fsk} /></TableCell>
-                <TableCell className="text-right"><ZeroCell value={s.num_ak1_3} /></TableCell>
-                <TableCell className="text-right"><ZeroCell value={s.num_ak4_6} /></TableCell>
-                <TableCell className="text-right border-r border-border/20"><ZeroCell value={s.num_ak7_9} /></TableCell>
-                {/* Student counts — fritids */}
-                <TableCell className="text-right"><ZeroCell value={s.num_fritids_6_9} /></TableCell>
-                <TableCell className="text-right border-r border-border/20"><ZeroCell value={s.num_fritids_10_12} /></TableCell>
-                {/* Totalt antal */}
-                <TableCell className="text-right font-medium">{fmt(s.total_school_students)}</TableCell>
-                <TableCell className="text-right font-medium border-r border-border/20">
-                  {s.total_fritids_students > 0 ? fmt(s.total_fritids_students) : <span className="text-muted-foreground/30">—</span>}
-                </TableCell>
-                {/* Per pupil amounts */}
-                <TableCell className="text-right">
-                  {s.num_fsk > 0 ? fmt(s.per_pupil_fsk) : <span className="text-muted-foreground/30">—</span>}
-                </TableCell>
-                <TableCell className="text-right">
-                  {s.num_ak1_3 > 0 ? fmt(s.per_pupil_ak1_3) : <span className="text-muted-foreground/30">—</span>}
-                </TableCell>
-                <TableCell className="text-right">
-                  {s.num_ak4_6 > 0 ? fmt(s.per_pupil_ak4_6) : <span className="text-muted-foreground/30">—</span>}
-                </TableCell>
-                <TableCell className="text-right">
-                  {s.num_ak7_9 > 0 ? fmt(s.per_pupil_ak7_9) : <span className="text-muted-foreground/30">—</span>}
-                </TableCell>
-                <TableCell className="text-right">
-                  {s.num_fritids_6_9 > 0 ? fmt(s.per_pupil_fritids_6_9) : <span className="text-muted-foreground/30">—</span>}
-                </TableCell>
-                <TableCell className="text-right border-r border-border/20">
-                  {s.num_fritids_10_12 > 0 ? fmt(s.per_pupil_fritids_10_12) : <span className="text-muted-foreground/30">—</span>}
-                </TableCell>
-                {/* Budget total */}
-                <TableCell className="text-right font-semibold">
-                  {fmtTkr(s.total_allocation)}
-                </TableCell>
-              </TableRow>
-            ))}
+            {sorted.map((s, i) => {
+              const isKommunal = s.school_type === "kommunal";
+              const avdragCell = isKommunal
+                ? s.lokalt_avdrag
+                : s.moms_tillagg + s.admin_tillagg;
+              const avdragLabel = isKommunal ? "−" : "+";
+              return (
+                <TableRow key={i} className="even:bg-muted/20">
+                  {/* School name + district */}
+                  <TableCell className="font-medium whitespace-nowrap border-r border-border/40">
+                    <div>{s.school_name}</div>
+                    {s.district && (
+                      <div className="text-muted-foreground/60 font-normal">{s.district}</div>
+                    )}
+                  </TableCell>
+                  {/* Index */}
+                  <TableCell className="text-center border-r border-border/40">
+                    {s.socioeconomic_index}
+                  </TableCell>
+                  {/* Individual year counts */}
+                  <TableCell className="text-right"><ZeroCell value={s.elever_f} /></TableCell>
+                  <TableCell className="text-right"><ZeroCell value={s.elever_ak1} /></TableCell>
+                  <TableCell className="text-right"><ZeroCell value={s.elever_ak2} /></TableCell>
+                  <TableCell className="text-right"><ZeroCell value={s.elever_ak3} /></TableCell>
+                  <TableCell className="text-right"><ZeroCell value={s.elever_ak4} /></TableCell>
+                  <TableCell className="text-right"><ZeroCell value={s.elever_ak5} /></TableCell>
+                  <TableCell className="text-right"><ZeroCell value={s.elever_ak6} /></TableCell>
+                  <TableCell className="text-right"><ZeroCell value={s.elever_ak7} /></TableCell>
+                  <TableCell className="text-right"><ZeroCell value={s.elever_ak8} /></TableCell>
+                  <TableCell className="text-right border-r border-border/20"><ZeroCell value={s.elever_ak9} /></TableCell>
+                  {/* Fritids counts */}
+                  <TableCell className="text-right"><ZeroCell value={s.elever_fritids_6_9} /></TableCell>
+                  <TableCell className="text-right border-r border-border/20"><ZeroCell value={s.elever_fritids_10_12} /></TableCell>
+                  {/* Totalt */}
+                  <TableCell className="text-right font-medium">{fmt(s.total_school_students)}</TableCell>
+                  <TableCell className="text-right font-medium border-r border-border/20">
+                    {s.total_fritids_students > 0 ? fmt(s.total_fritids_students) : <span className="text-muted-foreground/30">—</span>}
+                  </TableCell>
+                  {/* Grundersättning */}
+                  <TableCell className="text-right">
+                    {isV1 ? <span className="text-muted-foreground/30">—</span> : fmtTkr(s["grundersättning"])}
+                  </TableCell>
+                  <TableCell className="text-right border-r border-border/20">
+                    {isV1 ? <span className="text-muted-foreground/30">—</span> : fmtTkr(s["grundersättning_fritids"])}
+                  </TableCell>
+                  {/* Strukturersättning */}
+                  <TableCell className="text-right">
+                    {isV1 ? <span className="text-muted-foreground/30">—</span> : fmtTkr(s["strukturersättning"])}
+                  </TableCell>
+                  <TableCell className="text-right border-r border-border/20">
+                    {isV1 ? <span className="text-muted-foreground/30">—</span> : fmtTkr(s["strukturersättning_fritids"])}
+                  </TableCell>
+                  {/* Brutto */}
+                  <TableCell className="text-right border-r border-border/20">
+                    {isV1 ? <span className="text-muted-foreground/30">—</span> : fmtTkr(s.grundbelopp_brutto)}
+                  </TableCell>
+                  {/* Avdrag */}
+                  <TableCell className="text-right">
+                    {isV1 ? (
+                      <span className="text-muted-foreground/30">—</span>
+                    ) : (
+                      <span className={avdragCell > 0 ? (isKommunal ? "text-destructive/70" : "text-emerald-600") : ""}>
+                        {avdragCell > 0 ? `${avdragLabel} ${fmtTkr(avdragCell)}` : "—"}
+                      </span>
+                    )}
+                  </TableCell>
+                  {/* Tillägg */}
+                  <TableCell className="text-right border-r border-border/20">
+                    {isV1 || !isKommunal ? (
+                      <span className="text-muted-foreground/30">—</span>
+                    ) : (
+                      s.tillagg_totalt > 0 ? <span className="text-emerald-600">+ {fmtTkr(s.tillagg_totalt)}</span> : "—"
+                    )}
+                  </TableCell>
+                  {/* Netto */}
+                  <TableCell className="text-right font-semibold">
+                    {fmtTkr(s.netto)}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
@@ -316,6 +394,8 @@ function SchoolTable({
 
 export function TablesPage() {
   const results = useDataStore((s) => s.activeResults());
+  const modelVersion = useDataStore((s) => s.activeModelVersion());
+  const isV1 = modelVersion === "v1";
 
   if (!results) {
     return (
@@ -356,12 +436,14 @@ export function TablesPage() {
         title="Kommunala skolor"
         schools={kommunal}
         filenamePrefix="kommunala_skolor"
+        isV1={isV1}
       />
 
       <SchoolTable
         title="Fristående skolor"
         schools={fristaende}
         filenamePrefix="fristaende_skolor"
+        isV1={isV1}
       />
     </div>
   );

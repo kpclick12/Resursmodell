@@ -18,6 +18,7 @@ interface DataState {
   selectedPlanResults: SchoolResult[] | null;
   selectedPlanSummary: SummaryResult | null;
   selectedPlanName: string | null;
+  selectedPlanModelVersion: string | null;
 
   setSchools: (schools: SchoolInput[]) => void;
   setParameters: (params: Partial<CalculationParameters>) => void;
@@ -27,27 +28,47 @@ interface DataState {
     id: string | null,
     results?: SchoolResult[] | null,
     summary?: SummaryResult | null,
-    name?: string | null
+    name?: string | null,
+    modelVersion?: string | null
   ) => void;
   clearSelectedPlan: () => void;
 
   // Computed-like accessors
   activeResults: () => SchoolResult[] | null;
   activeSummary: () => SummaryResult | null;
+  activeModelVersion: () => string;
 }
+
+export const DEFAULT_PARAMETERS: CalculationParameters = {
+  total_budget: 0,
+  budget_grundskola: 0.85,
+  budget_fritidshem: 0.15,
+  andel_struktur_grundskola: 0.19,
+  andel_struktur_fritidshem: 0.10,
+  avdrag_kommunal_procent: 0.48,
+  moms_kompensation: 0.06,
+  admin_kompensation_fri: 0.03,
+  vikt_f: 1.000,
+  vikt_ak1: 1.000,
+  vikt_ak2: 1.180,
+  vikt_ak3: 1.310,
+  vikt_ak4: 1.260,
+  vikt_ak5: 1.290,
+  vikt_ak6: 1.350,
+  vikt_ak7: 1.420,
+  vikt_ak8: 1.430,
+  vikt_ak9: 1.430,
+  vikt_fritids_6_9: 1.000,
+  vikt_fritids_10_12: 0.340,
+  tillagg_skoladmin_per_elev: 0,
+  "tillagg_likvärdig_grund_per_elev": 0,
+  "tillagg_likvärdig_struktur_per_elev": 0,
+  tillagg_fritidsavgift_per_fritidsbarn: 0,
+};
 
 export const useDataStore = create<DataState>((set, get) => ({
   schools: [],
-  parameters: {
-    g_fsk: 49_500,
-    g_ak13: 62_000,
-    g_ak46: 66_100,
-    g_ak79: 70_100,
-    g_fritids_69: 30_800,
-    g_fritids_1012: 9_900,
-    structural_share: 0.19,
-    index_scale: 100,
-  },
+  parameters: { ...DEFAULT_PARAMETERS },
   results: null,
   summary: null,
   latestSessionId: null,
@@ -56,6 +77,7 @@ export const useDataStore = create<DataState>((set, get) => ({
   selectedPlanResults: null,
   selectedPlanSummary: null,
   selectedPlanName: null,
+  selectedPlanModelVersion: null,
 
   setSchools: (schools) => set({ schools }),
 
@@ -68,12 +90,13 @@ export const useDataStore = create<DataState>((set, get) => ({
   clearResults: () =>
     set({ results: null, summary: null, latestSessionId: null }),
 
-  setSelectedPlan: (id, results = null, summary = null, name = null) =>
+  setSelectedPlan: (id, results = null, summary = null, name = null, modelVersion = null) =>
     set({
       selectedPlanId: id,
       selectedPlanResults: results,
       selectedPlanSummary: summary,
       selectedPlanName: name,
+      selectedPlanModelVersion: modelVersion,
     }),
 
   clearSelectedPlan: () =>
@@ -82,6 +105,7 @@ export const useDataStore = create<DataState>((set, get) => ({
       selectedPlanResults: null,
       selectedPlanSummary: null,
       selectedPlanName: null,
+      selectedPlanModelVersion: null,
     }),
 
   activeResults: () => {
@@ -92,5 +116,13 @@ export const useDataStore = create<DataState>((set, get) => ({
   activeSummary: () => {
     const state = get();
     return state.selectedPlanId ? state.selectedPlanSummary : state.summary;
+  },
+
+  activeModelVersion: () => {
+    const state = get();
+    if (state.selectedPlanId) {
+      return state.selectedPlanModelVersion || "v2";
+    }
+    return state.summary?.model_version || "v2";
   },
 }));

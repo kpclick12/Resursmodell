@@ -33,10 +33,10 @@ function fmtSek(n: number): string {
   return `${fmt(n)} kr`;
 }
 
-/** Average school allocation per school pupil (fsk+ak1-3+ak4-6+ak7-9). */
+/** Average netto per school pupil. */
 function avgPerPupil(school: SchoolResult): number {
   if (school.total_school_students === 0) return 0;
-  return school.total_school_allocation / school.total_school_students;
+  return school.netto / school.total_school_students;
 }
 
 export function ComparisonPage() {
@@ -89,18 +89,18 @@ export function ComparisonPage() {
       { label: "Total budget", values: activePlans.map((p) => fmtSek(p.summary.total_budget)) },
       { label: "Antal skolor", values: activePlans.map((p) => String(p.summary.total_schools)) },
       { label: "Skolelever totalt", values: activePlans.map((p) => fmt(p.summary.total_pupils)) },
-      { label: "Genomsnitt per elev", values: activePlans.map((p) => fmtSek(p.summary.avg_per_pupil_overall)) },
-      { label: "Genomsnitt kommunal", values: activePlans.map((p) => fmtSek(p.summary.avg_per_pupil_kommunal)) },
-      { label: "Genomsnitt fristående", values: activePlans.map((p) => fmtSek(p.summary.avg_per_pupil_fristaende)) },
+      { label: "Genomsnitt netto per elev", values: activePlans.map((p) => fmtSek(p.summary.avg_netto_per_pupil_overall)) },
+      { label: "Genomsnitt netto kommunal", values: activePlans.map((p) => fmtSek(p.summary.avg_netto_per_pupil_kommunal)) },
+      { label: "Genomsnitt netto fristående", values: activePlans.map((p) => fmtSek(p.summary.avg_netto_per_pupil_fristaende)) },
       {
         label: "Kommunal–fristående gap",
         values: activePlans.map((p) =>
-          fmtSek(p.summary.avg_per_pupil_kommunal - p.summary.avg_per_pupil_fristaende)
+          fmtSek(p.summary.avg_netto_per_pupil_kommunal - p.summary.avg_netto_per_pupil_fristaende)
         ),
       },
       {
-        label: "Strukturell andel",
-        values: activePlans.map((p) => `${p.summary.socioeconomic_share.toFixed(1)}%`),
+        label: "Strukturersättning andel",
+        values: activePlans.map((p) => `${p.summary.strukturersattning_share.toFixed(1)}%`),
       },
     ];
   }, [activePlans]);
@@ -109,8 +109,8 @@ export function ComparisonPage() {
   const barChartData = useMemo(() => {
     return activePlans.map((p) => ({
       name: p.name,
-      Kommunal: p.summary.avg_per_pupil_kommunal,
-      Fristående: p.summary.avg_per_pupil_fristaende,
+      Kommunal: p.summary.avg_netto_per_pupil_kommunal,
+      Fristående: p.summary.avg_netto_per_pupil_fristaende,
     }));
   }, [activePlans]);
 
@@ -127,9 +127,9 @@ export function ComparisonPage() {
         const b_per_pupil = avgPerPupil(sb);
         return {
           school_name: sa.school_name,
-          a_total: sa.total_allocation,
+          a_total: sa.netto,
           a_per_pupil,
-          b_total: sb.total_allocation,
+          b_total: sb.netto,
           b_per_pupil,
           diff_per_pupil: b_per_pupil - a_per_pupil,
         };

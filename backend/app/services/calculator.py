@@ -7,62 +7,133 @@ from app.models import (
 )
 
 
-def _calc_year_group(
-    num: int,
-    grundbelopp: float,
-    index: float,
-    structural_share: float,
-    index_scale: float,
-) -> tuple[float, float]:
-    """Return (per_pupil, total_allocation) for one year group."""
-    per_pupil = grundbelopp * ((1 - structural_share) + structural_share * index / index_scale)
-    return round(per_pupil, 2), round(per_pupil * num, 2)
-
-
 def calculate_allocation(
     schools: list[SchoolInput], params: CalculationParameters
 ) -> CalculateResponse:
+    p = params
+
+    # --- Step 1: Split total budget ---
+    budget_gs = p.total_budget * p.budget_grundskola
+    budget_ft = p.total_budget * p.budget_fritidshem
+
+    # --- Step 2: Split into grundersättning + strukturersättning pools ---
+    pool_grund_gs  = budget_gs * (1 - p.andel_struktur_grundskola)
+    pool_struk_gs  = budget_gs * p.andel_struktur_grundskola
+    pool_grund_ft  = budget_ft * (1 - p.andel_struktur_fritidshem)
+    pool_struk_ft  = budget_ft * p.andel_struktur_fritidshem
+
+    # --- Step 3: Compute weighted pupils per school (grundskola) ---
+    def viktade_gs(s: SchoolInput) -> float:
+        return (
+            s.elever_f   * p.vikt_f
+            + s.elever_ak1 * p.vikt_ak1
+            + s.elever_ak2 * p.vikt_ak2
+            + s.elever_ak3 * p.vikt_ak3
+            + s.elever_ak4 * p.vikt_ak4
+            + s.elever_ak5 * p.vikt_ak5
+            + s.elever_ak6 * p.vikt_ak6
+            + s.elever_ak7 * p.vikt_ak7
+            + s.elever_ak8 * p.vikt_ak8
+            + s.elever_ak9 * p.vikt_ak9
+        )
+
+    def viktade_ft(s: SchoolInput) -> float:
+        return (
+            s.elever_fritids_6_9   * p.vikt_fritids_6_9
+            + s.elever_fritids_10_12 * p.vikt_fritids_10_12
+        )
+
+    vikt_gs_list = [viktade_gs(s) for s in schools]
+    vikt_ft_list = [viktade_ft(s) for s in schools]
+
+    total_vikt_gs = sum(vikt_gs_list)
+    total_vikt_ft = sum(vikt_ft_list)
+
+    # --- Step 4: Compute strukturtal per school ---
+    def struk_gs(s: SchoolInput) -> float:
+        return s.total_school_students * s.socioeconomic_index
+
+    def struk_ft(s: SchoolInput) -> float:
+        return s.total_fritids_students * s.socioeconomic_index
+
+    struk_gs_list = [struk_gs(s) for s in schools]
+    struk_ft_list = [struk_ft(s) for s in schools]
+
+    total_struk_gs = sum(struk_gs_list)
+    total_struk_ft = sum(struk_ft_list)
+
     results: list[SchoolResult] = []
 
-    for school in schools:
-        idx = school.socioeconomic_index
-        s = params.structural_share
-        sc = params.index_scale
+    for i, school in enumerate(schools):
+        # Grundersättning (proportional by weighted pupils)
+        ge_gs = (vikt_gs_list[i] / total_vikt_gs * pool_grund_gs) if total_vikt_gs > 0 else 0.0
+        ge_ft = (vikt_ft_list[i] / total_vikt_ft * pool_grund_ft) if total_vikt_ft > 0 else 0.0
 
-        pp_fsk,  alloc_fsk  = _calc_year_group(school.num_fsk,          params.g_fsk,       idx, s, sc)
-        pp_ak13, alloc_ak13 = _calc_year_group(school.num_ak1_3,        params.g_ak13,      idx, s, sc)
-        pp_ak46, alloc_ak46 = _calc_year_group(school.num_ak4_6,        params.g_ak46,      idx, s, sc)
-        pp_ak79, alloc_ak79 = _calc_year_group(school.num_ak7_9,        params.g_ak79,      idx, s, sc)
-        pp_f69,  alloc_f69  = _calc_year_group(school.num_fritids_6_9,  params.g_fritids_69,  idx, s, sc)
-        pp_f12,  alloc_f12  = _calc_year_group(school.num_fritids_10_12, params.g_fritids_1012, idx, s, sc)
+        # Strukturersättning (proportional by pupils × index)
+        se_gs = (struk_gs_list[i] / total_struk_gs * pool_struk_gs) if total_struk_gs > 0 else 0.0
+        se_ft = (struk_ft_list[i] / total_struk_ft * pool_struk_ft) if total_struk_ft > 0 else 0.0
 
-        school_alloc = round(alloc_fsk + alloc_ak13 + alloc_ak46 + alloc_ak79, 2)
-        fritids_alloc = round(alloc_f69 + alloc_f12, 2)
-        total_alloc = round(school_alloc + fritids_alloc, 2)
+        # Step 5: grundbelopp_brutto
+        brutto = ge_gs + se_gs + ge_ft + se_ft
+
+        # Steps 6–8: adjustments
+        lokalt_avdrag = 0.0
+        moms_tillagg = 0.0
+        admin_tillagg = 0.0
+        tillagg_totalt = 0.0
+        nettokvot: float | None = None
+
+        if school.school_type == "kommunal":
+            # Step 7: local deduction
+            lokalt_avdrag = brutto * p.avdrag_kommunal_procent
+            # Step 8: tillägg
+            total_elever = school.total_school_students
+            total_fritids = school.total_fritids_students
+            tillagg_totalt = (
+                p.tillagg_skoladmin_per_elev * total_elever
+                + p.tillagg_likvärdig_grund_per_elev * total_elever
+                + p.tillagg_likvärdig_struktur_per_elev * total_elever
+                + p.tillagg_fritidsavgift_per_fritidsbarn * total_fritids
+            )
+            netto = brutto - lokalt_avdrag + tillagg_totalt
+            nettokvot = (netto / brutto) if brutto > 0 else None
+        else:
+            # Step 6: fristående adjustments
+            moms_tillagg  = brutto * p.moms_kompensation
+            admin_tillagg = brutto * p.admin_kompensation_fri
+            netto = brutto + moms_tillagg + admin_tillagg
 
         results.append(
             SchoolResult(
                 school_name=school.school_name,
                 school_type=school.school_type,
-                num_fsk=school.num_fsk,
-                num_ak1_3=school.num_ak1_3,
-                num_ak4_6=school.num_ak4_6,
-                num_ak7_9=school.num_ak7_9,
-                num_fritids_6_9=school.num_fritids_6_9,
-                num_fritids_10_12=school.num_fritids_10_12,
+                elever_f=school.elever_f,
+                elever_ak1=school.elever_ak1,
+                elever_ak2=school.elever_ak2,
+                elever_ak3=school.elever_ak3,
+                elever_ak4=school.elever_ak4,
+                elever_ak5=school.elever_ak5,
+                elever_ak6=school.elever_ak6,
+                elever_ak7=school.elever_ak7,
+                elever_ak8=school.elever_ak8,
+                elever_ak9=school.elever_ak9,
+                elever_fritids_6_9=school.elever_fritids_6_9,
+                elever_fritids_10_12=school.elever_fritids_10_12,
                 total_school_students=school.total_school_students,
                 total_fritids_students=school.total_fritids_students,
-                socioeconomic_index=idx,
+                socioeconomic_index=school.socioeconomic_index,
                 district=school.district,
-                per_pupil_fsk=pp_fsk,
-                per_pupil_ak1_3=pp_ak13,
-                per_pupil_ak4_6=pp_ak46,
-                per_pupil_ak7_9=pp_ak79,
-                per_pupil_fritids_6_9=pp_f69,
-                per_pupil_fritids_10_12=pp_f12,
-                total_school_allocation=school_alloc,
-                total_fritids_allocation=fritids_alloc,
-                total_allocation=total_alloc,
+                grundersättning=round(ge_gs, 4),
+                strukturersättning=round(se_gs, 4),
+                grundersättning_fritids=round(ge_ft, 4),
+                strukturersättning_fritids=round(se_ft, 4),
+                grundbelopp_brutto=round(brutto, 4),
+                lokalt_avdrag=round(lokalt_avdrag, 4),
+                moms_tillagg=round(moms_tillagg, 4),
+                admin_tillagg=round(admin_tillagg, 4),
+                tillagg_totalt=round(tillagg_totalt, 4),
+                netto=round(netto, 4),
+                nettokvot=round(nettokvot, 6) if nettokvot is not None else None,
             )
         )
 
@@ -74,59 +145,45 @@ def _build_summary(
     results: list[SchoolResult],
     params: CalculationParameters | None = None,
 ) -> SummaryResult:
-    kommunal = [r for r in results if r.school_type == "kommunal"]
+    kommunal   = [r for r in results if r.school_type == "kommunal"]
     fristaende = [r for r in results if r.school_type == "fristående"]
 
-    total_budget = round(sum(r.total_allocation for r in results), 2)
-    total_pupils = sum(r.total_school_students for r in results)
-    kommunal_pupils = sum(r.total_school_students for r in kommunal)
-    fristaende_pupils = sum(r.total_school_students for r in fristaende)
+    total_budget_val = params.total_budget if params else round(sum(r.netto for r in results), 4)
 
-    fristaende_budget = sum(r.total_allocation for r in fristaende)
+    total_pupils       = sum(r.total_school_students for r in results)
+    kommunal_pupils    = sum(r.total_school_students for r in kommunal)
+    fristaende_pupils  = sum(r.total_school_students for r in fristaende)
 
-    def avg_school_per_pupil(school_list: list[SchoolResult]) -> float:
+    fristaende_netto = sum(r.netto for r in fristaende)
+    total_netto      = sum(r.netto for r in results)
+
+    def avg_netto_per_pupil(school_list: list[SchoolResult]) -> float:
         pupils = sum(r.total_school_students for r in school_list)
         if pupils == 0:
             return 0.0
-        alloc = sum(r.total_school_allocation for r in school_list)
-        return round(alloc / pupils, 2)
+        netto = sum(r.netto for r in school_list)
+        return round(netto / pupils, 4)
 
-    allocations = [r.total_allocation for r in results]
+    nettos = [r.netto for r in results]
 
-    # Structural (index-driven) portion of the budget.
-    # For each school: structural = sum_y(num_y * g_y * structural_share * idx/scale)
-    # = structural_share * idx/scale * sum_y(num_y * g_y)
-    # sum_y(num_y * g_y) can be back-computed from total_allocation:
-    #   total_alloc = sum_y(num_y*g_y) * ((1-s) + s*idx/scale)
-    # So sum_y(num_y*g_y) = total_alloc / ((1-s) + s*idx/scale)
-    if params is not None:
-        s = params.structural_share
-        sc = params.index_scale
-        socio_total = 0.0
-        for r in results:
-            denom = (1 - s) + s * r.socioeconomic_index / sc
-            if denom > 0:
-                weighted_g = r.total_allocation / denom
-                socio_total += s * r.socioeconomic_index / sc * weighted_g
-        socio_total = round(socio_total, 2)
-    else:
-        # Fallback for legacy plans loaded without params
-        socio_total = 0.0
+    # Structural total = sum of strukturersättning (GS + Fritids)
+    struk_total = sum(r.strukturersättning + r.strukturersättning_fritids for r in results)
 
     return SummaryResult(
-        total_budget=total_budget,
+        total_budget=total_budget_val,
         total_schools=len(results),
         kommunal_schools=len(kommunal),
         fristaende_schools=len(fristaende),
         total_pupils=total_pupils,
         kommunal_pupils=kommunal_pupils,
         fristaende_pupils=fristaende_pupils,
-        avg_per_pupil_overall=avg_school_per_pupil(results),
-        avg_per_pupil_kommunal=avg_school_per_pupil(kommunal),
-        avg_per_pupil_fristaende=avg_school_per_pupil(fristaende),
-        min_allocation=min(allocations) if allocations else 0,
-        max_allocation=max(allocations) if allocations else 0,
-        fristaende_budget_share=round(fristaende_budget / total_budget * 100, 2) if total_budget else 0,
-        socioeconomic_total=socio_total,
-        socioeconomic_share=round(socio_total / total_budget * 100, 2) if total_budget else 0,
+        avg_netto_per_pupil_overall=avg_netto_per_pupil(results),
+        avg_netto_per_pupil_kommunal=avg_netto_per_pupil(kommunal),
+        avg_netto_per_pupil_fristaende=avg_netto_per_pupil(fristaende),
+        min_allocation=min(nettos) if nettos else 0,
+        max_allocation=max(nettos) if nettos else 0,
+        fristaende_budget_share=round(fristaende_netto / total_netto * 100, 2) if total_netto else 0,
+        strukturersattning_total=round(struk_total, 4),
+        strukturersattning_share=round(struk_total / total_budget_val * 100, 2) if total_budget_val else 0,
+        model_version="v2",
     )

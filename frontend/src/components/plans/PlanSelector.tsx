@@ -51,7 +51,7 @@ export function PlanSelector() {
     }
     try {
       const detail = await getPlan(sessionId);
-      setSelectedPlan(sessionId, detail.schools, detail.summary, detail.name);
+      setSelectedPlan(sessionId, detail.schools, detail.summary, detail.name, detail.model_version);
       setOpen(false);
     } catch {
       toast.error("Kunde inte ladda scenariot.");
@@ -64,7 +64,7 @@ export function PlanSelector() {
       await renamePlan(sessionId, editName.trim());
       await fetchPlans();
       if (selectedPlanId === sessionId) {
-        setSelectedPlan(selectedPlanId, useDataStore.getState().selectedPlanResults, useDataStore.getState().selectedPlanSummary, editName.trim());
+        setSelectedPlan(selectedPlanId, useDataStore.getState().selectedPlanResults, useDataStore.getState().selectedPlanSummary, editName.trim(), useDataStore.getState().selectedPlanModelVersion);
       }
       setEditingId(null);
       toast.success("Scenario omdöpt.");

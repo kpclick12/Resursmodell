@@ -30,12 +30,19 @@ async def upload_csv(
                 num_students=0,  # legacy column, kept for compat
                 socioeconomic_index=school.socioeconomic_index,
                 district=school.district,
-                num_fsk=school.num_fsk,
-                num_ak1_3=school.num_ak1_3,
-                num_ak4_6=school.num_ak4_6,
-                num_ak7_9=school.num_ak7_9,
-                num_fritids_6_9=school.num_fritids_6_9,
-                num_fritids_10_12=school.num_fritids_10_12,
+                # v2 individual year columns
+                elever_f=school.elever_f,
+                elever_ak1=school.elever_ak1,
+                elever_ak2=school.elever_ak2,
+                elever_ak3=school.elever_ak3,
+                elever_ak4=school.elever_ak4,
+                elever_ak5=school.elever_ak5,
+                elever_ak6=school.elever_ak6,
+                elever_ak7=school.elever_ak7,
+                elever_ak8=school.elever_ak8,
+                elever_ak9=school.elever_ak9,
+                num_fritids_6_9=school.elever_fritids_6_9,
+                num_fritids_10_12=school.elever_fritids_10_12,
             )
         )
     await db.commit()
